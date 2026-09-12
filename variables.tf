@@ -148,3 +148,64 @@ variable "tags" {
   description = "Additional tags, merged over the module's set. A key here overrides the module's value — including the ones the tag guardrails require, so be sure."
   default     = {}
 }
+
+# ── The pipeline role — apex only ────────────────────────────────────────────
+
+variable "create_pipeline_role" {
+  type        = bool
+  description = <<-EOT
+    Create the IAM role `protect-dns` exempts — the ONLY principal that may
+    change records in the apex zone. Its policy is scoped to THIS zone's ARN
+    and to record changes. Its name must match what
+    aj-infra/envs/org/platform/scps.tfvars lists in dns_pipeline_role_arns,
+    or the exemption names a role that does not exist and the pipeline
+    denies itself. Apex only; a private zone refuses it.
+  EOT
+  default     = false
+}
+
+variable "pipeline_role_name" {
+  type    = string
+  default = "dns-pipeline"
+}
+
+variable "pipeline_trust_principal_arns" {
+  type        = list(string)
+  description = <<-EOT
+    Who may assume the pipeline role. In Stage 2 this is the GitHub OIDC
+    provider's federated principal with a repo condition; in Stage 1 there is
+    no OIDC provider, so the apex tfvars pass the account root, a mock like
+    everything else. Required when create_pipeline_role is true — a role
+    nobody can assume is not a pipeline, and the plan says so rather than
+    creating one.
+  EOT
+  default     = []
+}
+
+# ── DNSSEC ───────────────────────────────────────────────────────────────────
+
+variable "dnssec" {
+  type        = bool
+  description = <<-EOT
+    Sign the zone. Creates a KMS key (ECC_NIST_P256, us-east-1, SIGN_VERIFY),
+    a key-signing key and enables signing. Needs account_id. Two things this
+    does NOT do, because they cannot be done from here: publish the apex's DS
+    at the REGISTRAR (manual, one-time, and protect-dns denies route53domains
+    to everyone), and write a child's DS into its parent — that is the
+    parent's `delegation_ds_records`, fed from this zone's `ds_record` output.
+
+    Off by default: signing with the chain incomplete makes the zone
+    unresolvable for validating resolvers, which is most of them.
+  EOT
+  default     = false
+}
+
+variable "delegation_ds_records" {
+  type        = map(list(string))
+  description = <<-EOT
+    DS records per delegated child, { "child.zone.name" = [ds record] } — the
+    child's `ds_record` output when it enabled dnssec. Every key must also be
+    in `delegations`; a DS without an NS is a chain of trust to nowhere.
+  EOT
+  default     = {}
+}

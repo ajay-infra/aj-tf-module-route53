@@ -18,8 +18,9 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
-  # Plan offline. No data sources in this module, no live reads — a plan with
-  # dummy credentials is a real diff. This is a property the estate depends
+  # Plan offline. No live reads — a plan with dummy credentials is a real
+  # diff. The only data sources are aws_iam_policy_document, which renders
+  # JSON locally and calls nothing. This is a property the estate depends
   # on (aj-infra-context/arch/capability-map.md); do not add a data source
   # without also adding a way to skip it.
   skip_credentials_validation = true

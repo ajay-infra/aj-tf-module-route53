@@ -38,3 +38,13 @@ output "query_log_group_name" {
   description = "The query log group, when query_logging is on; null otherwise."
   value       = local.query_logging ? aws_cloudwatch_log_group.query[0].name : null
 }
+
+output "pipeline_role_arn" {
+  description = "The role protect-dns must exempt, when create_pipeline_role is on. Paste into aj-infra/envs/org/platform/scps.tfvars dns_pipeline_role_arns; null otherwise."
+  value       = var.create_pipeline_role ? aws_iam_role.pipeline[0].arn : null
+}
+
+output "ds_record" {
+  description = "When dnssec is on: this zone's DS record. For a child, paste into the parent's delegation_ds_records; for the apex, publish at the registrar. Null otherwise."
+  value       = var.dnssec ? aws_route53_key_signing_key.this[0].ds_record : null
+}

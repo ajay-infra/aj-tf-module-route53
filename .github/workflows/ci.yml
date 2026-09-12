@@ -70,6 +70,20 @@ jobs:
         # zone's name servers. Assert the plan shows the zone, not just that
         # it ran.
         run: grep -q 'aws_route53_zone.this will be created' plan.txt
+      - name: The apex plan has the shape protect-dns assumes
+        # protect-dns exempts exactly one role by name; the apex plan must
+        # create it, and must create no record that is not NS or DS. A plan
+        # that ran is not a plan that has the right shape.
+        if: matrix.tfvars == 'envs/apex.tfvars'
+        run: |
+          grep -q 'aws_iam_role.pipeline\[0\] will be created' plan.txt || { echo "::error::apex plan does not create the pipeline role protect-dns exempts"; exit 1; }
+          if grep -qE 'type\s+= "(A|AAAA|CNAME|TXT|MX|SRV)"' plan.txt; then echo "::error::apex plan writes a non-delegation record"; exit 1; fi
+          echo "apex: pipeline role present, delegation records only"
+      - name: A stage zone plan creates no apex-only resources
+        if: matrix.tfvars != 'envs/apex.tfvars'
+        run: |
+          if grep -qE 'aws_iam_role\.pipeline' plan.txt; then echo "::error::a non-apex plan creates the pipeline role"; exit 1; fi
+          echo "stage zone: no apex-only resources"
 
   security:
     name: Security Scan

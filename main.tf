@@ -29,6 +29,13 @@ resource "aws_route53_zone" "this" {
       condition     = !(var.query_logging && local.private)
       error_message = "query_logging is not supported on a private hosted zone (Route 53 limitation). Drop query_logging or vpc_ids."
     }
+    precondition {
+      # The log group and the DNSSEC key are regional and Route 53 accepts
+      # them only in us-east-1. One provider serves; this refuses any other
+      # region rather than the apply discovering it.
+      condition     = !(var.query_logging || var.dnssec) || var.aws_region == "us-east-1"
+      error_message = "query_logging and dnssec require aws_region = us-east-1 (Route 53 writes query logs and reads key-signing keys only there); aws_region is ${var.aws_region}."
+    }
   }
 }
 
