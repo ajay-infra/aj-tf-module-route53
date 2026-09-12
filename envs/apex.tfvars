@@ -28,3 +28,13 @@ delegations = {
 query_logging            = true
 query_log_retention_days = 90
 account_id               = "777777777777" # MOCK — not a real AWS identifier
+
+# The role protect-dns exempts. Scoped to this zone; its name must match
+# dns_pipeline_role_arns in aj-infra/envs/org/platform/scps.tfvars. Trust is
+# the account root under Stage 1 — the GitHub OIDC principal in Stage 2.
+create_pipeline_role          = true
+pipeline_role_name            = "dns-pipeline"
+pipeline_trust_principal_arns = ["arn:aws:iam::777777777777:root"] # MOCK — not a real AWS identifier
+
+# Off until the registrar DS step is scheduled — see variables.tf.
+dnssec = false

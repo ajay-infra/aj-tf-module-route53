@@ -15,6 +15,8 @@ cert-manager hold rights to one zone each. `aj-infra-context/arch/account-model.
 main.tf      → aws_route53_zone (prevent_destroy), aws_route53_record NS
                delegations, optional query logging (log group + resource
                policy + aws_route53_query_log)
+iam.tf       → the dns-pipeline role protect-dns exempts (apex only, scoped to this zone)
+dnssec.tf    → KMS key + KSK + signing (off by default), DS records for signed children
 locals.tf    → private?, query_logging gate, full_tags
 variables.tf → zone_name, vpc_ids, delegations (validated as children),
                query_logging, account_id, environment/class/customer/team/cost_center

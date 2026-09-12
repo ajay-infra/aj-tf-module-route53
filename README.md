@@ -58,8 +58,17 @@ shape Route 53 uses, marked as such.
   does not support it; the precondition says why.
 - **On the apex, `protect-dns`** (`aj-tf-module-scps` ≥ v0.4.0) denies zone
   deletion, record writes, VPC disassociation and the registrar-side escapes
-  to every principal except `dns_pipeline_role_arns`. This module's pipeline
-  role must be one of those, or its own applies are denied.
+  to every principal except `dns_pipeline_role_arns`. **This module creates
+  that role** when `create_pipeline_role` is on — `dns-pipeline`, scoped to
+  this zone's ARN and to record changes, no zone create/delete, no `kms:*`.
+  Its name is a contract with `aj-infra/envs/org/platform/scps.tfvars`; if
+  the two disagree the pipeline denies itself. CI asserts the apex plan
+  creates it.
+- **DNSSEC** (`dnssec`, off by default): KMS key + KSK + signing, `ds_record`
+  output; a parent carries a signed child's DS via `delegation_ds_records`.
+  The registrar DS is manual. Signing with the chain incomplete makes the
+  zone unresolvable — that is why it is off.
+- **us-east-1 is a precondition** when query logging or DNSSEC is on.
 
 ## Tags
 
@@ -94,9 +103,6 @@ has; CI plans both plus `example.tfvars`.
   the account model recommends one with delegated subzones. This module is
   written for the recommended shape and uses the mock vocabulary. Decide at
   registration, then change the mocks and these tfvars together.
-- **DNSSEC.** Not in v0.1.0. It needs a KMS key in us-east-1 and a
-  key-signing key per zone, and it changes what "re-create the zone" costs.
-  Worth a version of its own once the apex is real.
-- **The DNS pipeline role.** `protect-dns` exempts `dns_pipeline_role_arns`;
-  nothing creates that role yet. It belongs with the account bootstrap, not
-  in this module.
+- ~~DNSSEC~~ and ~~the DNS pipeline role~~ — both in this module now; see
+  Guardrails. What stays open is the **registrar**: registration, the apex
+  NS, the apex DS. One-time, manual, outside Terraform's reach.
